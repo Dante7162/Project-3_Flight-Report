@@ -1,130 +1,123 @@
-// Simplified Page Rank; last edited by DYL 04.14.2022
 #include <iostream>
-#include <map>
-#include <vector>
 #include <string>
-#include <iterator>
-#include <iomanip>
+#include <fstream>
+#include <chrono>
+#include "SortInPlace.h"
+#include "SortAfter.h"
 
 using namespace std;
+using namespace std::chrono;
 
-class Graph {
-private:
-	int n;
-	int p;
-	map<string, int> indegrees;
-	map<string, vector<pair<string, float>>> adjacencyList;
-	map<string, float> pageRank;
-public:
-	Graph(int lines, int iterations) {
-		n = lines;
-		p = iterations - 1;
-	}
+void runCode(SortInPlace inPlace) {
+    string name;
+    int delay;
 
-	void takeInput(string from, string to) {
-		if (indegrees.find(from) != indegrees.end())
-			//if in indegrees than increase the indegree for that node
-			indegrees[from]++;
-		else //else initialize indegree to 1
-			indegrees[from] = 1;
+    SortAfter merge;
+    SortAfter bubble;
 
-		//add to adjacency list
-		adjacencyList[to].push_back(make_pair(from, 1));
+    cout << "Time it takes to take input and sort-" << endl;
 
-		//line from TA 
-		if (adjacencyList.find(from) == adjacencyList.end())
-			adjacencyList[from] = {};
-	}
+    auto start = high_resolution_clock::now();
 
-	void replaceAdjacencyList() {
-		for (auto index = adjacencyList.begin(); index != adjacencyList.end(); index++) {
-			//for every node in adjacency list
-			vector<pair<string, float>> edges = adjacencyList[index->first];
+    ifstream file("flights_data.csv");
 
-			for (int i = 0; i < edges.size(); i++) {
-				//for every edge in the current node
+    for (int i = 0; i < 100049; i++) {
+        getline(file, name);
 
-				//give the edge the weight from indegree
-				index->second.at(i).second = indegrees[index->second.at(i).first];
+        delay = stoi(name.substr(name.find(',') + 1, name.size() - name.find(',')));
+        if (i == 0)
+            name = name.substr(3, 3);
+        else
+            name = name.substr(0, 3);
 
-				//if only one edge to this node
-				if (indegrees.count(edges[i].first) == 1) {
-					int val = indegrees[edges[i].first];
-					string name = edges[i].first;
-					//erase this node
-					adjacencyList[index->first].erase(adjacencyList[index->first].begin() + i);
-					//reset node with updated indegree
-					adjacencyList[index->first].insert(adjacencyList[index->first].begin() + i, make_pair(name, 1.0 / val));
-				}
-			}
-		}
-	}
+        inPlace.newNode(name, delay);
+    }
+    file.close();
 
-	void initializePageRank() {
-		//initialize page rank to 1/|v|
-		for (auto index = adjacencyList.begin(); index != adjacencyList.end(); index++)
-			pageRank[index->first] = 1.0 / adjacencyList.size();
-	}
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    cout << "In place sort: " << duration.count() << " milliseconds" << endl;
 
-	void powerIterations() {
-		map < string, float> temp;
-		for (int i = p; i > 0; i--) {
-			//for however many number of iterations
-			for (auto index = pageRank.begin(); index != pageRank.end(); index++) {
-				//for every map pair of page rank
-				float sum = 0.0;
 
-				//if unique edge
-				if (adjacencyList.count(index->first) == 1) {
-					vector<pair<string, float>> edges = adjacencyList[index->first];
+    start = high_resolution_clock::now();
 
-					for (int j = 0; j < edges.size(); j++) {
-						//for every edge
+    ifstream fileTwo("flights_data.csv");
 
-						//rank formula
-						float valInMap2 = edges[j].second;
-						float valInMap3 = pageRank[edges[j].first];
-						sum += valInMap2 * valInMap3;
-					}
-					//add to a new page rank template
-					temp[index->first] = sum;
-				}
-			}
-			//transfer to page rank
-			pageRank = temp;
-			temp.clear();
-		}
-	}
+    for (int i = 0; i < 100049; i++) {
+        getline(fileTwo, name);
 
-	void display() {
-		for (auto index = pageRank.begin(); index != pageRank.end(); index++) {
-			cout << index->first << " " << fixed << setprecision(2) << index->second << endl;
-		}
-	}
-};
+        delay = stoi(name.substr(name.find(',') + 1, name.size() - name.find(',')));
+        if (i == 0)
+            name = name.substr(3, 3);
+        else
+            name = name.substr(0, 3);
+
+        merge.addNode(name, delay);
+    }
+    fileTwo.close();
+
+    merge.MergeSort();
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    cout << "Merge sort: " << duration.count() << " milliseconds" << endl;
+
+
+    start = high_resolution_clock::now();
+
+    ifstream fileThree("flights_data.csv");
+
+    for (int i = 0; i < 100049; i++) {
+        getline(fileThree, name);
+
+        delay = stoi(name.substr(name.find(',') + 1, name.size() - name.find(',')));
+        if (i == 0)
+            name = name.substr(3, 3);
+        else
+            name = name.substr(0, 3);
+
+        bubble.addNode(name, delay);
+    }
+    fileThree.close();
+
+    bubble.BubbleSort();
+    stop = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(stop - start);
+    cout << "Bubble sort: " << duration.count() << " milliseconds" << endl;
+
+    cout << endl << endl;
+}
 
 int main() {
-	int n;
-	int p;
-	
-	cin >> n >> p;
+    SortInPlace inPlace;
+    runCode(inPlace);
+    while (true) {
+        cout << "Options:" << endl << "1. Print the 10 most efficient airports" << endl << "2. Print the 10 least efficient airports" << endl << "3. Print both" << endl << "4. Print all" << endl << "5. Run again" << endl << "Enter any other value to exit" << endl;
+        int option;
+        cin >> option;
+        cout << endl << endl;
+        if (option == 1)
+            inPlace.PrintEfficent();
+        else if (option == 2)
+            inPlace.PrintInefficent();
+        else if (option == 3) {
+            inPlace.PrintEfficent();
+            cout << endl;
+            inPlace.PrintInefficent();
+        }
+        else if (option == 4)
+            inPlace.PrintAll();
+        else if (option == 5) {
+            SortInPlace newList;
+            runCode(newList);
+        }
+        else
+            break;
+    }
+    
 
-	Graph webpages(n, p);
-
-	string from; 
-	string to;
-	for (int i = 0; i < n; i++) {
-		cin >> from >> to;
-		webpages.takeInput(from, to);
-	}
-	
-	webpages.replaceAdjacencyList();
-
-	webpages.initializePageRank();
-
-	webpages.powerIterations();
-
-	webpages.display();
-
-	return 0;
+    return 0;
 }
+
+
+
+
